@@ -4,7 +4,40 @@ Embedded sensor integration with **ROS 2 Humble**, **micro-ROS**, and **ESP32**.
 
 **Stack:** Arduino C++ · ESP32 · ROS 2 Humble · micro-ROS · DS18B20 · SX1278 · SX1262
 
-[Firmware](firmware/) · [Setup and wiring](docs/setup.md) · [Packet format](docs/packet-format.md) · [Implementation notes](docs/implementation-notes.md)
+[Firmware](firmware/) · [Hardware guide](docs/hardware.md) · [Setup and wiring](docs/setup.md) · [Packet format](docs/packet-format.md) · [Implementation notes](docs/implementation-notes.md)
+
+## Hardware at a glance
+
+<table>
+  <tr>
+    <th>ESP32 controller</th>
+    <th>Temperature sensor</th>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://www.adafruit.com/product/3405"><img src="https://cdn-shop.adafruit.com/970x728/3405-08.jpg" height="180" alt="Adafruit HUZZAH32 ESP32 Feather reference board"></a><br><strong>Adafruit HUZZAH32 Feather</strong><br>ESP32 + 2.4 GHz Wi-Fi + USB serial</td>
+    <td align="center"><a href="https://www.adafruit.com/product/381"><img src="https://cdn-shop.adafruit.com/970x728/381-01.jpg" height="180" alt="DS18B20 digital temperature probe reference equivalent"></a><br><strong>DS18B20 probe</strong><br>1-Wire temperature sensing on GPIO4</td>
+  </tr>
+  <tr>
+    <th>LoRa transmitter radio</th>
+    <th>LoRa receiver board</th>
+  </tr>
+  <tr>
+    <td align="center"><a href="docs/hardware.md#sx1278-transmitter"><img src="docs/assets/sx1278-module.png" height="180" alt="SX1278 LoRa 433 MHz V4.0 module pictured in the project source material"></a><br><strong>SX1278 module</strong><br>External SPI radio + spring antenna</td>
+    <td align="center"><a href="https://heltec.org/project/wireless-stick-lite-v2/"><img src="https://heltec.org/wp-content/uploads/2023/09/wireless-stickLite-front.png" height="180" alt="Heltec Wireless Stick Lite V3 product-family reference"></a><br><strong>Heltec Wireless Stick family</strong><br>ESP32-S3 + onboard SX1262 radio</td>
+  </tr>
+</table>
+
+*Select a picture for its product page or hardware notes. Adafruit and Heltec pictures are manufacturer references; the SX1278 picture is extracted from the project material. The DS18B20 image is an equivalent probe, and the linked Heltec product identifies the Lite V3 family. These are component references, not photographs of the complete assembled setup. [Image credits and exact hardware notes](docs/hardware.md).*
+
+| Component | Role in this system | Connection or setting |
+| --- | --- | --- |
+| Robot / Raspberry Pi 4 | Publishes robot telemetry | `/robot/imu` as `geometry_msgs/msg/Twist` |
+| ROS 2 computer | Runs the micro-ROS agent and ROS graph | Humble, domain `10`, UDP port `8888` by default |
+| ESP32 + DS18B20 | Publishes temperature and receives robot data | 2.4 GHz Wi-Fi; 1-Wire data on GPIO4 |
+| ESP32 + SX1278 | Converts robot data to radio packets | SPI; CS `27`, RESET `33`, DIO0 `15` |
+| Heltec + SX1262 | Validates and decodes received packets | LoRa receive; serial output at `115200` baud |
+
+**Radio-band note:** the sketches configure **433 MHz**. The exact Heltec RF variant is not established by the product name; the report's product photo is marked EU868. Use a radio front end and antenna matched to the configured band. See the [hardware guide](docs/hardware.md#receiver-variant-and-radio-band) for the distinction.
 
 ## What the project does
 
@@ -17,18 +50,28 @@ The core integration demonstrates ROS topic publishing and subscribing directly 
 
 ## System architecture
 
-```mermaid
-flowchart LR
-    Robot["Robot ROS 2 publisher"] -->|"/robot/imu · Twist"| Agent["PC: micro-ROS agent"]
-    Sensor["DS18B20"] --> Temp["ESP32 temperature node"]
-    Agent <-->|"Wi-Fi / UDP"| Temp
-    Temp -.->|"/esp32/temperature · Float32"| Graph["ROS 2 graph"]
-    Agent -->|"Wi-Fi / UDP"| TX["ESP32 + SX1278"]
-    TX -->|"433 MHz LoRa · 16 bytes"| RX["Heltec + SX1262"]
-    RX --> Serial["Decoded serial telemetry"]
-```
+[![ESP32 transmission flow showing ROS topics, 2.4 GHz Wi-Fi, 433 MHz LoRa settings, packet format, and serial output](docs/assets/transmission-flow.svg)](docs/assets/transmission-flow.svg)
 
-The temperature topic reaches the ROS graph through the agent. The Heltec receiver is a serial telemetry endpoint; it does not republish received packets into ROS 2.
+1. The robot publishes `/robot/imu` into the ROS 2 graph. The micro-ROS agent carries it over **Wi-Fi / UDP** to both ESP32 clients.
+2. The sensor ESP32 publishes `/esp32/temperature` back through the agent. This temperature branch stays on Wi-Fi.
+3. The transmitter ESP32 scales six `Twist` fields into signed 16-bit values, adds a sequence number and CRC-8, and sends the resulting **16-byte** packet over LoRa.
+4. The Heltec receiver checks length, header, and CRC, decodes the values, and prints them with radio diagnostics to the serial monitor at **115200 baud**.
+
+The LoRa hop carries **robot telemetry**, not the temperature topic. Fresh robot samples still reach the transmitter through Wi-Fi. The receiver is a serial endpoint and does not republish into ROS 2.
+
+### Frequencies, rates, and packet settings
+
+| Item | Configured value | What it means |
+| --- | --- | --- |
+| ESP32 Wi-Fi | 2.4 GHz band | IP connection to the micro-ROS agent; the channel is not fixed in the sketch |
+| LoRa RF carrier | **433 MHz** | Direct transmitter-to-receiver radio link |
+| LoRa modulation | **SF7 · 125 kHz bandwidth · coding rate 4/5** | Both radio endpoints must use matching settings |
+| LoRa framing | Preamble `8`, public sync `0x34`, PHY CRC enabled | Radio-level framing and error checking |
+| Application packet | **16 bytes**, sequence counter, six `int16_t` fields, CRC-8 | Compact encoding checked again by the receiver |
+| Send schedule | At least **100 ms** between attempts; **at most 10 attempts/s** | Can repeat the last sample; this is not a measured fresh-data delivery rate |
+| Serial monitor | **115200 baud** | USB/UART logging rate, separate from the radio carrier and send schedule |
+
+The sensor publishes periodically. Its conversion and loop timing do not establish an exact fixed publication rate. [Full packet specification](docs/packet-format.md) · [Radio setup](docs/setup.md#radio-settings).
 
 ## Firmware
 

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="1120" viewBox="0 0 1100 1120" role="img" aria-labelledby="title desc">
+  <title id="title">ESP32 ROS 2 telemetry: Wi-Fi sensing and 433 MHz LoRa forwarding</title>
+  <desc id="desc">A robot publishes the /robot/imu Twist topic to ROS 2 Humble. On the computer, micro-ROS agents connect two ESP32 clients over 2.4 GHz Wi-Fi and UDP in domain 10. One ESP32 reads a DS18B20 sensor through GPIO 4 and publishes /esp32/temperature as Float32. A second ESP32 packs robot telemetry into 16-byte frames and sends them through an SX1278 at 433 MHz to a Heltec ESP32-S3 and SX1262 receiver. The receiver validates and decodes frames and prints them at 115200 baud. LoRa uses spreading factor 7, 125 kHz bandwidth, coding rate 4/5, an 8-symbol preamble, and PHY CRC. Transmit attempts occur no faster than every 100 milliseconds and can repeat the most recent sample.</desc>
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8.8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2469d3"/></marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="8.8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#128369"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="8.8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#b55d16"/></marker>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="8.8" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#526477"/></marker>
+    <style>
+      text { font-family: "DejaVu Sans", Arial, sans-serif; fill: #1c3047; }
+      .title { font-size: 33px; font-weight: 700; }
+      .subtitle { font-size: 20px; fill: #526477; }
+      .node-title { font-size: 25px; font-weight: 700; }
+      .body { font-size: 20px; }
+      .small { font-size: 18px; }
+      .muted { fill: #526477; }
+      .label { font-size: 19px; font-weight: 700; }
+      .blue { fill: #2058a9; }
+      .green { fill: #086b55; }
+      .orange { fill: #975018; }
+      .center { text-anchor: middle; }
+      .wire { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect width="1100" height="1120" rx="24" fill="#f8fafc"/>
+  <text x="550" y="49" class="title center">From ROS topics to a radio link</text>
+  <text x="550" y="80" class="subtitle center">Temperature sensing + one-way robot telemetry</text>
+
+  <!-- Robot-to-computer ROS topic -->
+  <rect x="340" y="108" width="420" height="87" rx="17" fill="#ffffff" stroke="#aebdcd" stroke-width="2"/>
+  <text x="550" y="143" class="node-title center">Robot ROS 2 publisher</text>
+  <text x="550" y="174" class="body muted center">IMU-related telemetry</text>
+  <path d="M550 195 V246" class="wire" stroke="#526477" marker-end="url(#arrow-gray)"/>
+  <rect x="577" y="201" width="364" height="34" rx="9" fill="#f8fafc"/>
+  <text x="592" y="225" class="body">/robot/imu · Twist</text>
+
+  <!-- ROS computer -->
+  <rect x="150" y="250" width="800" height="128" rx="19" fill="#eaf2ff" stroke="#2469d3" stroke-width="2"/>
+  <text x="550" y="287" class="node-title center">PC · ROS 2 Humble + micro-ROS agents</text>
+  <text x="550" y="320" class="body blue center">ROS domain 10 · UDP transport</text>
+  <text x="550" y="350" class="small muted center">Default port 8888 per sketch; use separate ports for two agents</text>
+
+  <!-- Both Wi-Fi connections are independently attached to the PC. -->
+  <path d="M280 378 V516" class="wire" stroke="#2469d3" marker-start="url(#arrow-blue)" marker-end="url(#arrow-blue)"/>
+  <path d="M820 378 V516" class="wire" stroke="#2469d3" marker-end="url(#arrow-blue)"/>
+  <rect x="67" y="402" width="426" height="89" rx="12" fill="#f8fafc"/>
+  <text x="280" y="424" class="label blue center">2.4 GHz Wi-Fi · UDP</text>
+  <text x="280" y="453" class="small center">↓ /robot/imu · Twist</text>
+  <text x="280" y="479" class="small center">↑ /esp32/temperature · Float32</text>
+  <rect x="615" y="411" width="410" height="70" rx="12" fill="#f8fafc"/>
+  <text x="820" y="436" class="label blue center">2.4 GHz Wi-Fi · UDP</text>
+  <text x="820" y="465" class="body center">/robot/imu · Twist</text>
+
+  <!-- Temperature client -->
+  <rect x="60" y="520" width="440" height="133" rx="18" fill="#e9f7f2" stroke="#128369" stroke-width="2"/>
+  <text x="280" y="557" class="node-title center">ESP32 · sensor node</text>
+  <text x="280" y="590" class="body center">Publishes temperature in °C</text>
+  <text x="280" y="620" class="body center">Also subscribes to robot telemetry</text>
+  <path d="M280 737 V659" class="wire" stroke="#128369" marker-end="url(#arrow-green)"/>
+  <rect x="93" y="676" width="374" height="36" rx="10" fill="#f8fafc"/>
+  <text x="280" y="701" class="label green center">OneWire · data on GPIO 4</text>
+  <rect x="60" y="741" width="440" height="88" rx="17" fill="#ffffff" stroke="#128369" stroke-width="2"/>
+  <text x="280" y="777" class="node-title center">DS18B20</text>
+  <text x="280" y="807" class="body muted center">Digital temperature sensor</text>
+
+  <!-- LoRa client -->
+  <rect x="600" y="520" width="440" height="133" rx="18" fill="#fff3e8" stroke="#b55d16" stroke-width="2"/>
+  <text x="820" y="557" class="node-title center">ESP32 + SX1278</text>
+  <text x="820" y="590" class="body center">Subscribe → quantize → pack</text>
+  <text x="820" y="620" class="body center">Send the latest telemetry sample</text>
+  <path d="M820 653 V781" class="wire" stroke="#b55d16" marker-end="url(#arrow-orange)"/>
+  <rect x="598" y="670" width="444" height="86" rx="12" fill="#f8fafc"/>
+  <text x="820" y="694" class="label orange center">433 MHz LoRa · one way</text>
+  <text x="820" y="721" class="small center">SF7 · BW 125 kHz · coding rate 4/5</text>
+  <text x="820" y="747" class="small center">8-symbol preamble · PHY CRC enabled</text>
+
+  <!-- Receiver and serial endpoint -->
+  <rect x="600" y="785" width="440" height="118" rx="18" fill="#fff3e8" stroke="#b55d16" stroke-width="2"/>
+  <text x="820" y="821" class="node-title center">Heltec ESP32-S3 + SX1262</text>
+  <text x="820" y="853" class="body center">Check length, header and CRC-8</text>
+  <text x="820" y="881" class="body center">Decode the six telemetry fields</text>
+  <path d="M820 903 V971" class="wire" stroke="#526477" marker-end="url(#arrow-gray)"/>
+  <rect x="647" y="921" width="346" height="31" rx="9" fill="#f8fafc"/>
+  <text x="820" y="944" class="label center">Serial · 115200 baud</text>
+  <rect x="600" y="975" width="440" height="70" rx="16" fill="#ffffff" stroke="#aebdcd" stroke-width="2"/>
+  <text x="820" y="1005" class="node-title center">Serial monitor</text>
+  <text x="820" y="1031" class="small muted center">Telemetry endpoint · no ROS republishing</text>
+
+  <!-- Timing and payload explanation -->
+  <rect x="60" y="854" width="440" height="191" rx="17" fill="#ffffff" stroke="#cfdae5" stroke-width="2"/>
+  <text x="83" y="887" class="label">Firmware timing and payload</text>
+  <text x="83" y="919" class="small">Temperature: periodic sensor conversions</text>
+  <text x="83" y="946" class="small">LoRa: ≥100 ms between send attempts</text>
+  <text x="83" y="973" class="small">At most 10 Hz; samples may repeat</text>
+  <text x="83" y="1000" class="small">16 bytes: header, seq, 6 × int16, CRC-8</text>
+  <text x="83" y="1027" class="small">Values scaled ×1000 before transmission</text>
+
+  <line x1="60" y1="1072" x2="1040" y2="1072" stroke="#d7e1eb" stroke-width="2"/>
+  <text x="550" y="1100" class="small muted center">Configured settings shown; radio range, latency and delivery rate are not benchmarked here.</text>
+</svg>
