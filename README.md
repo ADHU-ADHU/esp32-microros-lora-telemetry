@@ -73,6 +73,22 @@ The LoRa hop carries **robot telemetry**, not the temperature topic. Fresh robot
 
 The sensor publishes periodically. Its conversion and loop timing do not establish an exact fixed publication rate. [Full packet specification](docs/packet-format.md) · [Radio setup](docs/setup.md#radio-settings).
 
+## Direct LoRa link: ESP32 to Heltec
+
+**The radio transmission goes directly from the external SX1278 attached to the transmitter ESP32 to the SX1262 built into the Heltec board.** The PC runs the micro-ROS agent that supplies robot data over Wi-Fi. It is upstream of this radio hop and does not relay the LoRa signal.
+
+[![Detailed direct LoRa link from an ESP32 over wired SPI to an external SX1278, across the 433 MHz radio link, and into the Heltec onboard SX1262 and ESP32-S3](docs/assets/lora-direct-link.svg)](docs/assets/lora-direct-link.svg)
+
+| Transmitter: two connected boards | Receiver: one integrated Heltec board |
+| --- | --- |
+| The ESP32 runs the application and builds the 16-byte packet. | The onboard ESP32-S3 runs the receiver application and decodes the packet. |
+| The **external SX1278 module**, connected by SPI and control wires, creates the LoRa radio signal. | The **onboard SX1262 radio**, already connected to the MCU on the PCB, receives the LoRa signal. |
+| A band-matched antenna transmits the packet at the configured 433 MHz carrier. | A band-matched antenna feeds the received signal to the SX1262. No external SX1278 module is added to this receiver. |
+
+The radios use matching LoRa settings even though they are different chips and use different software libraries. This firmware sends in one direction and has no acknowledgement from the Heltec. Its `TX OK` message reports local transmission completion, not confirmed reception.
+
+Read the [step-by-step LoRa communication guide](docs/lora-link.md) for the wired connections, radio configuration, send/receive sequence, packet checks, and the PC's precise role. The [receiver band note](docs/hardware.md#receiver-variant-and-radio-band) still applies to the exact hardware variant.
+
 ## Firmware
 
 | Sketch | Hardware | Function |

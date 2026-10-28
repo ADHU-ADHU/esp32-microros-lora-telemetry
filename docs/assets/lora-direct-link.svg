@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="1320" viewBox="0 0 1100 1320" role="img" aria-labelledby="title desc">
+  <title id="title">Direct LoRa hardware path from an ESP32 and external SX1278 to a Heltec receiver</title>
+  <desc id="desc">A computer supplies the robot IMU topic to an ESP32 over Wi-Fi. The ESP32 drives a separate SX1278 radio module over SPI. The transmitter uses board-defined SCK, MOSI and MISO, GPIO 27 for chip select, GPIO 33 for reset and GPIO 15 for DIO0. The radio transmits through an antenna over a direct 433 MHz LoRa link to the antenna of a Heltec board. That single board contains the SX1262 receiver and ESP32-S3 microcontroller, with onboard radio wiring selected by the Heltec board definition. The receiver validates and decodes the 16-byte frame, then prints it at 115200 baud. Radio settings are SF7, 125 kHz bandwidth, coding rate 4/5, an eight-symbol preamble, public sync and PHY CRC. No acknowledgement is configured; this is a direct LoRa physical-layer link.</desc>
+  <defs>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="8.8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#2469d3"/></marker>
+    <marker id="arrow-orange" viewBox="0 0 10 10" refX="8.8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#b55d16"/></marker>
+    <marker id="arrow-gray" viewBox="0 0 10 10" refX="8.8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="#526477"/></marker>
+    <style>
+      text { font-family: "DejaVu Sans", Arial, sans-serif; fill: #1c3047; }
+      .title { font-size: 34px; font-weight: 700; }
+      .subtitle { font-size: 21px; fill: #526477; }
+      .node { font-size: 26px; font-weight: 700; }
+      .body { font-size: 22px; }
+      .small { font-size: 19px; }
+      .label { font-size: 21px; font-weight: 700; }
+      .group { font-size: 21px; font-weight: 700; letter-spacing: 1px; }
+      .center { text-anchor: middle; }
+      .muted { fill: #526477; }
+      .blue { fill: #2058a9; }
+      .orange { fill: #975018; }
+      .wire { fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect width="1100" height="1320" rx="24" fill="#f8fafc"/>
+  <text x="550" y="50" class="title center">The direct LoRa hardware path</text>
+  <text x="550" y="83" class="subtitle center">Separate transmitter hardware → radio hop → integrated receiver</text>
+
+  <!-- The PC supplies ROS data before the direct radio path begins. -->
+  <rect x="260" y="111" width="580" height="98" rx="17" fill="#eaf2ff" stroke="#2469d3" stroke-width="2"/>
+  <text x="550" y="148" class="node center">ROS computer · upstream input</text>
+  <text x="550" y="181" class="body blue center">/robot/imu · geometry_msgs/msg/Twist</text>
+  <rect x="472" y="220" width="426" height="29" rx="9" fill="#f8fafc"/>
+  <text x="483" y="242" class="small blue">2.4 GHz Wi-Fi / UDP via micro-ROS</text>
+
+  <!-- Transmitter group: the MCU and radio really are separate boards. -->
+  <rect x="60" y="259" width="980" height="346" rx="22" fill="#ffffff" stroke="#d2dce6" stroke-width="2"/>
+  <rect x="83" y="246" width="273" height="30" rx="8" fill="#f8fafc"/>
+  <text x="96" y="268" class="group">TRANSMITTER</text>
+  <text x="600" y="299" class="small muted">MCU + separate radio module</text>
+  <path d="M450 209 V315" class="wire" stroke="#2469d3" marker-end="url(#arrow-blue)"/>
+
+  <rect x="100" y="320" width="380" height="165" rx="18" fill="#eaf2ff" stroke="#2469d3" stroke-width="2"/>
+  <text x="290" y="361" class="node center">ESP32 microcontroller</text>
+  <text x="290" y="398" class="body center">Subscribe to ROS telemetry</text>
+  <text x="290" y="432" class="body center">Quantize + pack 16 bytes</text>
+  <text x="290" y="463" class="small muted center">sx1278_imu_transmitter.ino</text>
+
+  <path d="M485 403 H644" class="wire" stroke="#526477" marker-end="url(#arrow-gray)"/>
+  <text x="565" y="379" class="label center">Wired SPI</text>
+  <text x="565" y="437" class="small muted center">SCK / MOSI</text>
+  <text x="565" y="464" class="small muted center">MISO</text>
+
+  <rect x="650" y="320" width="350" height="165" rx="18" fill="#fff3e8" stroke="#b55d16" stroke-width="2"/>
+  <text x="825" y="361" class="node center">External SX1278</text>
+  <text x="825" y="398" class="body center">433 MHz radio module</text>
+  <text x="825" y="432" class="body center">SPI bytes → LoRa signal</text>
+  <text x="825" y="463" class="small muted center">Arduino-LoRa library</text>
+
+  <text x="100" y="527" class="label">Transmitter wiring</text>
+  <text x="100" y="558" class="small">CS / NSS: GPIO 27 · RESET: GPIO 33</text>
+  <text x="100" y="585" class="small">DIO0: GPIO 15 · SPI pins: board constants</text>
+
+  <!-- Antenna is connected to the radio, not to the Wi-Fi host. -->
+  <path d="M825 485 V509 M799 509 L825 535 L851 509 M825 535 V574" class="wire" stroke="#b55d16"/>
+  <text x="650" y="550" class="label orange">TX antenna</text>
+
+  <!-- Direct air link. -->
+  <path d="M847 650 Q875 677 847 704 M862 637 Q904 677 862 717" class="wire" stroke="#e0a270" stroke-width="2"/>
+  <rect x="80" y="635" width="640" height="132" rx="19" fill="#fff3e8" stroke="#efc7a8" stroke-width="2"/>
+  <text x="104" y="670" class="node orange">433 MHz · direct LoRa air link</text>
+  <text x="104" y="704" class="body">SF7 · 125 kHz bandwidth · coding rate 4/5</text>
+  <text x="104" y="733" class="small">8-symbol preamble · public sync 0x34 · PHY CRC</text>
+  <text x="104" y="759" class="small">No acknowledgement configured · direct LoRa PHY</text>
+
+  <!-- Heltec group: radio and MCU share one board. -->
+  <rect x="60" y="803" width="980" height="292" rx="22" fill="#ffffff" stroke="#d2dce6" stroke-width="2"/>
+  <rect x="83" y="790" width="430" height="30" rx="8" fill="#f8fafc"/>
+  <text x="96" y="812" class="group">HELTEC RECEIVER · ONE BOARD</text>
+  <text x="100" y="853" class="small muted">Integrated radio + microcontroller</text>
+  <path d="M825 576 V816" class="wire" stroke="#b55d16" stroke-width="4" marker-end="url(#arrow-orange)"/>
+
+  <path d="M799 826 L825 852 L851 826 M825 852 V894" class="wire" stroke="#b55d16" marker-end="url(#arrow-orange)"/>
+  <text x="647" y="881" class="label orange">RX antenna</text>
+
+  <rect x="650" y="900" width="350" height="150" rx="18" fill="#fff3e8" stroke="#b55d16" stroke-width="2"/>
+  <text x="825" y="941" class="node center">Onboard SX1262</text>
+  <text x="825" y="978" class="body center">Continuous radio reception</text>
+  <text x="825" y="1012" class="body center">LoRa signal → bytes</text>
+
+  <path d="M644 975 H486" class="wire" stroke="#526477" marker-end="url(#arrow-gray)"/>
+  <text x="565" y="947" class="label center">Onboard SPI</text>
+  <text x="565" y="1011" class="small muted center">Board-defined</text>
+
+  <rect x="100" y="900" width="380" height="150" rx="18" fill="#eaf2ff" stroke="#2469d3" stroke-width="2"/>
+  <text x="290" y="941" class="node center">ESP32-S3</text>
+  <text x="290" y="978" class="body center">Check header + CRC-8</text>
+  <text x="290" y="1012" class="body center">Decode telemetry + print</text>
+
+  <text x="665" y="1080" class="muted center" font-size="16">Onboard wiring is selected by the Heltec board definition.</text>
+
+  <!-- Serial is the endpoint of the receiver firmware. -->
+  <path d="M290 1050 V1154" class="wire" stroke="#526477" marker-end="url(#arrow-gray)"/>
+  <rect x="313" y="1107" width="262" height="33" rx="9" fill="#f8fafc"/>
+  <text x="325" y="1131" class="label">Serial · 115200 baud</text>
+  <rect x="100" y="1160" width="380" height="85" rx="17" fill="#ffffff" stroke="#aebdcd" stroke-width="2"/>
+  <text x="290" y="1197" class="node center">Serial monitor</text>
+  <text x="290" y="1228" class="small muted center">Decoded values + RSSI / SNR</text>
+
+  <rect x="600" y="1132" width="440" height="113" rx="17" fill="#ffffff" stroke="#d2dce6" stroke-width="2"/>
+  <text x="622" y="1164" class="label">16-byte application frame</text>
+  <text x="622" y="1195" class="small">Header + sequence + six int16 + CRC-8</text>
+  <text x="622" y="1223" class="small">Each value is scaled ×1000 for transport</text>
+
+  <line x1="60" y1="1273" x2="1040" y2="1273" stroke="#d7e1eb" stroke-width="2"/>
+  <text x="550" y="1301" class="small muted center">Firmware settings shown; use a frequency-compatible receiver variant and antennas.</text>
+</svg>
