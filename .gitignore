@@ -1,0 +1,26 @@
+# Local credentials and network configuration
+secrets.h
+*.local.h
+.env
+.env.*
+
+# Arduino build products
+build/
+*.elf
+*.bin
+*.hex
+*.map
+.pio/
+
+# Editor and system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*~
+
+# Python / host validation
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
